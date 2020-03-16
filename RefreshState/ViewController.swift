@@ -10,13 +10,17 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    let urlString = "https://script.google.com/macros/s/AKfycbxpT85ZP_8blkqMvEq0jgMBUKKrwDXnYDYVVaFoV6uot-O-hWIH/exec"
+    private let userBaseURL = "https://script.google.com/macros/s/AKfycbxpT85ZP_8blkqMvEq0jgMBUKKrwDXnYDYVVaFoV6uot-O-hWIH/exec"
+    private var users = [User]()
     
     var timer: Timer!
     var refreshIndicator: UIBarButtonItem!
-    var items = [String]()
     
     @IBOutlet weak var table: UITableView!
+    
+    var items = [String]()
+    var nameArray = [String]()
+    var imgURLArray = [String]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -57,9 +61,60 @@ class ViewController: UIViewController {
                 self.navigationItem.rightBarButtonItem = self.navigationItem.rightBarButtonItem
             }
     }
-    
+    //-------------
     func downloadingJsonWithURL() {
-        guard let url = URL(string: urlString) else { return }
+        guard let url = URL(string: userBaseURL) else {
+            return
+                    }
+
+        let request = URLRequest(url: url)
+        let session = URLSession.shared
+        session.dataTask(with: request) { (data, response, error) in
+            
+            if let response = response {
+                print(response)
+                    } else if let error = error {
+                print(error)
+             return }
+
+            // Parse JSON data
+            if let data = data {
+                self.users = self.parseJsonData(data: data)
+
+            // Reload table view
+            OperationQueue.main.addOperation({
+                self.table.reloadData()
+                })
+            }
+        }.resume()
+    }
+
+    func parseJsonData(data: Data) -> [User] {
+
+        var users = [User]()
+
+        do {
+            let jsonResult = try JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
+
+            // Parse JSON data
+            let jsonUsers = jsonResult?["users"] as! [AnyObject]
+            for jsonUser in jsonUsers {
+                var user = User()
+                user.id = jsonUser["id"] as! Int
+                user.name = jsonUser["name"] as! String
+                user.urlImage = jsonUser["url"] as! String
+                users.append(user)
+            }
+
+        } catch {
+            print(error)
+        }
+
+        return users
+    }
+    /*
+    func downloadingJsonWithURL() {
+        guard let url = URL(string: userBaseURL) else { return }
         
         let session = URLSession.shared
         session.dataTask(with: url, completionHandler: { (data, response, error) in
@@ -78,13 +133,14 @@ class ViewController: UIViewController {
                 }
             }
         }).resume()
-    }
+    }*/
 }
 
 extension ViewController: UITableViewDataSource, UITableViewDelegate {
-    
+    /*
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return items.count
+        //return items.count
+        return 1
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -95,5 +151,29 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
         //cell.myLabel.text = "Row \(indexPath.row)"
         return cell
     }
-    
+    */
+    func numberOfSections(in table: UITableView) -> Int {
+        // Return the number of sections
+        return 1
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        // Return the number of rows
+        return users.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = table.dequeueReusableCell(withIdentifier: "Cell", for: indexPath) as! CustomCell
+        // Configure the cell...
+        cell.identifierLabel.text = "$\(users[indexPath.row].id)"
+        cell.nameLabel.text = users[indexPath.row].name
+        cell.imgLabel.image = UIImage(
+        
+        //cell.ratingLabel.text  = "$\(users[indexPath.row].id)"
+        //cell.nameLabel.text = users[indexPath.row].name
+        //cell.imgView.text = users[indexPath.row].urlImage
+        //cell.imagethum.image = UIImage(named :dataArray[indexPath.row]["thumbnailUrl"]! as! String)
+
+        return cell
+    }
 }
