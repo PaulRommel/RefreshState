@@ -102,71 +102,16 @@ class ViewController: UIViewController {
                 user.urlImage = jsonUser["url"] as! String
                 users.append(user)
             }
-            //let jsonResult = try JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
-            
-            // Parse JSON data
-            /*
-            let jsonUsers = jsonResult?["users"] as! [AnyObject]
-            for jsonUser in jsonUsers {
-                var user = User()
-                user.id = jsonUser["id"] as! Int
-                user.name = jsonUser["name"] as! String
-                user.urlImage = jsonUser["url"] as! String
-                users.append(user)
-            }
- */
-
         } catch {
             print(error)
-        }
-
+    }
         return users
     }
-    /*
-    func downloadingJsonWithURL() {
-        guard let url = URL(string: userBaseURL) else { return }
-        
-        let session = URLSession.shared
-        session.dataTask(with: url, completionHandler: { (data, response, error) in
-            if let response = response {
-                print(response)
-                
-                guard let data = data else { return }
-                print(data)
-                
-                //извлечение данных data
-                do {
-                    let json = try JSONSerialization.jsonObject(with: data, options: [])
-                    print(json)
-                } catch {
-                    print(error)
-                }
-            }
-        }).resume()
-    }*/
+    
 }
 
 extension ViewController: UITableViewDataSource, UITableViewDelegate {
-    /*
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        //return items.count
-        return 1
-    }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        //let cell = table.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        let cell = table.dequeueReusableCell(withIdentifier: "Cell") as! CustomCell
-        let currentStr = items[indexPath.row]
-        cell.textLabel?.text = currentStr
-        //cell.myLabel.text = "Row \(indexPath.row)"
-        return cell
-    }
-   
-    func numberOfSections(in table: UITableView) -> Int {
-        // Return the number of sections
-        return 1
-    }
-  */
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // Return the number of rows
         return users.count
@@ -178,9 +123,18 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
         cell.identifierLabel.text = "$\(users[indexPath.row].id)"
         cell.nameLabel.text = users[indexPath.row].name
         
-        
         //cell.imgLabel.image = UIImage(
-
+        if let imageURL = URL(string: users[indexPath.row].urlImage) {
+            DispatchQueue.global().async {
+                let data = try? Data(contentsOf: imageURL)
+                if let data = data {
+                    let image = UIImage(data: data)
+                    DispatchQueue.main.async {
+                        cell.imgLabel.image = image
+                    }
+                }
+            }
+        }
         return cell
     }
 }
