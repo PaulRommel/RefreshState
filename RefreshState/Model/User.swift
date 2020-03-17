@@ -13,3 +13,5 @@ struct User {
     var name: String = ""
     var urlImage: String = ""
 }
+
+
