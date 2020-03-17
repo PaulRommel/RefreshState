@@ -18,10 +18,6 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var table: UITableView!
     
-    var items = [String]()
-    var nameArray = [String]()
-    var imgURLArray = [String]()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -70,6 +66,7 @@ class ViewController: UIViewController {
         let request = URLRequest(url: url)
         let session = URLSession.shared
         session.dataTask(with: request) { (data, response, error) in
+            print("downloaded")
             
             if let response = response {
                 print(response)
@@ -94,9 +91,21 @@ class ViewController: UIViewController {
         var users = [User]()
 
         do {
-            let jsonResult = try JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
-
+            let json = try JSONSerialization.jsonObject(with: data, options: [])
+            print(json)
+            
+            let jsonUsers = json as! [AnyObject]
+            for jsonUser in jsonUsers {
+                var user = User()
+                user.id = jsonUser["id"] as! Int
+                user.name = jsonUser["name"] as! String
+                user.urlImage = jsonUser["url"] as! String
+                users.append(user)
+            }
+            //let jsonResult = try JSONSerialization.jsonObject(with: data, options: JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
+            
             // Parse JSON data
+            /*
             let jsonUsers = jsonResult?["users"] as! [AnyObject]
             for jsonUser in jsonUsers {
                 var user = User()
@@ -105,6 +114,7 @@ class ViewController: UIViewController {
                 user.urlImage = jsonUser["url"] as! String
                 users.append(user)
             }
+ */
 
         } catch {
             print(error)
@@ -151,28 +161,25 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
         //cell.myLabel.text = "Row \(indexPath.row)"
         return cell
     }
-    */
+   
     func numberOfSections(in table: UITableView) -> Int {
         // Return the number of sections
         return 1
     }
-
+  */
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // Return the number of rows
         return users.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = table.dequeueReusableCell(withIdentifier: "Cell", for: indexPath) as! CustomCell
+        let cell = table.dequeueReusableCell(withIdentifier: "Cell") as! CustomCell
         // Configure the cell...
         cell.identifierLabel.text = "$\(users[indexPath.row].id)"
         cell.nameLabel.text = users[indexPath.row].name
-        cell.imgLabel.image = UIImage(
         
-        //cell.ratingLabel.text  = "$\(users[indexPath.row].id)"
-        //cell.nameLabel.text = users[indexPath.row].name
-        //cell.imgView.text = users[indexPath.row].urlImage
-        //cell.imagethum.image = UIImage(named :dataArray[indexPath.row]["thumbnailUrl"]! as! String)
+        
+        //cell.imgLabel.image = UIImage(
 
         return cell
     }
