@@ -2,7 +2,7 @@
 //  User.swift
 //  RefreshState
 //
-//  Created by Павел Попов on 15.03.2020.
+//  Created by Павел Попов on 18.03.2020.
 //  Copyright © 2020 Hamburger Studio. All rights reserved.
 //
 
@@ -13,5 +13,3 @@ struct User {
     var name: String = ""
     var urlImage: String = ""
 }
-
-

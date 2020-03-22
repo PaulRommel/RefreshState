@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  RefreshState
 //
-//  Created by Павел Попов on 29.02.2020.
+//  Created by Павел Попов on 18.03.2020.
 //  Copyright © 2020 Hamburger Studio. All rights reserved.
 //
 
@@ -10,7 +10,6 @@ import UIKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
-
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {

@@ -2,7 +2,7 @@
 //  ViewController.swift
 //  RefreshState
 //
-//  Created by Павел Попов on 29.02.2020.
+//  Created by Павел Попов on 18.03.2020.
 //  Copyright © 2020 Hamburger Studio. All rights reserved.
 //
 
@@ -15,19 +15,20 @@ class ViewController: UIViewController {
     
     var timer: Timer!
     var refreshIndicator: UIBarButtonItem!
-    
-    @IBOutlet weak var table: UITableView!
+
+    @IBOutlet weak var tableView: UITableView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Do any additional setup after loading the view.
         
-        let nib = UINib(nibName: "CustomCell", bundle: nil)
-        table.register(nib, forCellReuseIdentifier: "Cell")
+        let nib = UINib(nibName: "TableViewCell", bundle: nil)
+        tableView.register(nib, forCellReuseIdentifier: "Cell")
         
         self.setupNavigatioBar()
         self.downloadingJsonWithURL()
     }
-    
+
     func setupNavigatioBar(){
         ///SettingReloadButton
         navigationController?.navigationBar.barStyle = .black
@@ -52,11 +53,12 @@ class ViewController: UIViewController {
     @objc func refreshNow() {
         //here i am creating delay for sample purpose
             //here write your webservice code on completion of webservice change bar button item
-            self.navigationItem.rightBarButtonItem = refreshIndicator
+                self.navigationItem.rightBarButtonItem = refreshIndicator
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2) {
                 self.navigationItem.rightBarButtonItem = self.navigationItem.rightBarButtonItem
             }
     }
+    
     //-------------
     func downloadingJsonWithURL() {
         guard let url = URL(string: userBaseURL) else {
@@ -80,7 +82,7 @@ class ViewController: UIViewController {
 
             // Reload table view
             OperationQueue.main.addOperation({
-                self.table.reloadData()
+                self.tableView.reloadData()
                 })
             }
         }.resume()
@@ -107,21 +109,21 @@ class ViewController: UIViewController {
     }
         return users
     }
-    
+
 }
 
-extension ViewController: UITableViewDataSource, UITableViewDelegate {
+extension ViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // Return the number of rows
         return users.count
     }
-
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = table.dequeueReusableCell(withIdentifier: "Cell") as! CustomCell
+        let cell = tableView.dequeueReusableCell(withIdentifier: "Cell") as! TableViewCell
         // Configure the cell...
-        cell.identifierLabel.text = "$\(users[indexPath.row].id)"
-        cell.nameLabel.text = users[indexPath.row].name
+        cell.lblid.text = "\(users[indexPath.row].id)"
+        cell.lblName.text = users[indexPath.row].name
         
         //cell.imgLabel.image = UIImage(
         if let imageURL = URL(string: users[indexPath.row].urlImage) {
@@ -130,11 +132,13 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
                 if let data = data {
                     let image = UIImage(data: data)
                     DispatchQueue.main.async {
-                        cell.imgLabel.image = image
+                        cell.lblimageView.image = image
                     }
                 }
             }
         }
         return cell
     }
+    
 }
+
