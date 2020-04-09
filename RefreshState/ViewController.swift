@@ -10,107 +10,156 @@ import UIKit
 
 class ViewController: UIViewController {
     
+    @IBOutlet weak var tableView: UITableView!
+    
     private let userBaseURL = "https://script.google.com/macros/s/AKfycbxpT85ZP_8blkqMvEq0jgMBUKKrwDXnYDYVVaFoV6uot-O-hWIH/exec"
+    private let ratingURL = "https://script.google.com/macros/s/AKfycbzv2bNOi5wikApDxtSamkiIuOzI1o338Q00Hn1BJLmiJS8mtyNA/exec"
     private var users = [User]()
     
-    var timer: Timer!
-    var refreshIndicator: UIBarButtonItem!
-
-    @IBOutlet weak var tableView: UITableView!
+    let activityIndicator = UIActivityIndicatorView()
+    let barButtonForActivity = UIBarButtonItem()
+    var barButtonSave = UIBarButtonItem()
+    
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
         
         let nib = UINib(nibName: "TableViewCell", bundle: nil)
         tableView.register(nib, forCellReuseIdentifier: "Cell")
         
-        self.setupNavigatioBar()
-        self.downloadingJsonWithURL()
+        setupNavigatioBar()
+        
+        activityIndicator(state: true)
+        downloadingJsonWithURL() {
+            self.activityIndicator(state: false)
+        }
     }
-
+    
     func setupNavigatioBar(){
+        //Title
+        let titleLabel = UILabel(frame: CGRect(x: 0, y: 0, width: 100, height: 30))
+        titleLabel.textColor = UIColor.white
+        titleLabel.text = "Rating"
+        titleLabel.textAlignment = .center
+        titleLabel.font = UIFont(name: "Baskerville-Bold", size: 20)
+        navigationItem.titleView = titleLabel
         ///SettingReloadButton
         navigationController?.navigationBar.barStyle = .black
         navigationController?.navigationBar.titleTextAttributes = [.foregroundColor: UIColor.white]
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(refreshNow))
-
-        let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView.init(style: UIActivityIndicatorView.Style.medium)
-        refreshIndicator = UIBarButtonItem(customView: activityIndicator)
-        activityIndicator.startAnimating()
-        toogleIndicator()
+        
+        
+        barButtonSave = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(reloadButtonAction))
+        navigationItem.rightBarButtonItem = barButtonSave
     }
     
-    deinit {
-      timer?.invalidate()
+    @objc func reloadButtonAction() {
+        activityIndicator(state: true)
+        
+        downloadingJsonWithURL() {
+            self.activityIndicator(state: false)
+        }
     }
     
-    func toogleIndicator() {
-        // 5 minutes = 300 seconds //write here 300
-        timer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: (#selector(self.refreshNow)), userInfo: nil, repeats: true)
-    }
-    
-    @objc func refreshNow() {
-        //here i am creating delay for sample purpose
-            //here write your webservice code on completion of webservice change bar button item
-                self.navigationItem.rightBarButtonItem = refreshIndicator
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2) {
-                self.navigationItem.rightBarButtonItem = self.navigationItem.rightBarButtonItem
+    @objc func getRatingData(completion: @escaping (_ data: Data?) -> Void) {
+        guard let url = URL(string: ratingURL) else { return }
+        
+        let request = URLRequest(url: url)
+        let session = URLSession.shared
+        
+        session.dataTask(with: request) { (data, response, error) in
+            print("downloaded Rating")
+            
+            if let error = error {
+                print(error.localizedDescription)
+                return
             }
+            
+            completion(data)
+        }.resume()
     }
     
     //-------------
-    func downloadingJsonWithURL() {
+    func downloadingJsonWithURL(completion: @escaping (() -> Void)) {
         guard let url = URL(string: userBaseURL) else {
             return
-                    }
-
+        }
+        
         let request = URLRequest(url: url)
         let session = URLSession.shared
+        
         session.dataTask(with: request) { (data, response, error) in
             print("downloaded")
             
-            if let response = response {
-                print(response)
-                    } else if let error = error {
-                print(error)
-             return }
-
+            if let error = error {
+                print(error.localizedDescription)
+                completion()
+                return
+            }
+            
             // Parse JSON data
-            if let data = data {
-                self.users = self.parseJsonData(data: data)
+            guard let data = data, let users = try? JSONDecoder().decode([User].self, from: data) else { return }
+            
+            self.getRatingData { data in
+                
+                guard let data = data, let ratings = try? JSONDecoder().decode([Rating].self, from: data) else {
+                    self.users = users
+                    DispatchQueue.main.async {
+                        self.tableView.reloadData()
+                        completion()
+                    }
+                    return
+                }
+                
+                for user in users {
+                    for rating in ratings {
+                        if user.id == rating.userId {
+                            self.users.append(User(id: user.id,
+                                                   name: user.name,
+                                                   url: user.url,
+                                                   rating: rating.rating,
+                                                   status: rating.status,
+                                                   lastGame: rating.lastGame))
+                            continue
+                        }
+                    }
+                }
+                
 
-            // Reload table view
-            OperationQueue.main.addOperation({
-                self.tableView.reloadData()
-                })
+                // Sorting by rating
+                self.users.sort { lhs, rhs in
+                    switch (lhs.rating, rhs.rating) {
+                     case let(l?, r?): return l > r // Both lhs and rhs are not nil
+                     case (nil, _): return false    // Lhs is nil
+                     case (_?, nil): return true    // Lhs is not nil, rhs is nil
+                     }
+                }
+                
+                // Reload table view
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                    completion()
+                }
             }
         }.resume()
     }
-
-    func parseJsonData(data: Data) -> [User] {
-
-        var users = [User]()
-
-        do {
-            let json = try JSONSerialization.jsonObject(with: data, options: [])
-            print(json)
-            
-            let jsonUsers = json as! [AnyObject]
-            for jsonUser in jsonUsers {
-                var user = User()
-                user.id = jsonUser["id"] as! Int
-                user.name = jsonUser["name"] as! String
-                user.urlImage = jsonUser["url"] as! String
-                users.append(user)
-            }
-        } catch {
-            print(error)
-    }
-        return users
+    //-- [barButtonSave, barButtonForActivity]
+    private func activityIndicator(state: Bool) {
+        barButtonForActivity.customView = activityIndicator
+        activityIndicator.hidesWhenStopped = true
+        if state {
+            activityIndicator.startAnimating()
+            navigationItem.rightBarButtonItems = [barButtonForActivity]
+            barButtonSave.isEnabled = false
+        } else {
+            activityIndicator.stopAnimating()
+            navigationItem.rightBarButtonItem = barButtonSave
+            barButtonSave.isEnabled = true
+        }
     }
 
 }
+
 
 extension ViewController: UITableViewDelegate, UITableViewDataSource {
     
@@ -122,23 +171,28 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell") as! TableViewCell
         // Configure the cell...
-        cell.lblid.text = "\(users[indexPath.row].id)"
-        cell.lblName.text = users[indexPath.row].name
+        cell.lblid.text = "\(users[indexPath.row].id)" //ID:
+        cell.lblName.text = "\(users[indexPath.row].name!)" //name:
         
-        //cell.imgLabel.image = UIImage(
-        if let imageURL = URL(string: users[indexPath.row].urlImage) {
-            DispatchQueue.global().async {
-                let data = try? Data(contentsOf: imageURL)
-                if let data = data {
-                    let image = UIImage(data: data)
-                    DispatchQueue.main.async {
-                        cell.lblimageView.image = image
-                    }
-                }
-            }
+        cell.lblrating.text = users[indexPath.row].rating != nil ? " \(users[indexPath.row].rating!)" : "" //rating:
+        cell.lmlmessage.text = users[indexPath.row].status
+        
+        
+        if let date = users[indexPath.row].lastGame {
+            let timeInterval = TimeInterval(date)
+            let df = DateFormatter()
+            df.dateFormat = "dd.MM.yyyy"
+            
+            let strDate = df.string(from: Date(timeIntervalSince1970: timeInterval))
+            
+            cell.lblnetworkStatus.text = "Date: \(strDate)"
+        } else {
+            cell.lblnetworkStatus.text = ""
         }
+            
+        cell.lblimageView.fetchImage (with: users[indexPath.row].url)
+        
         return cell
     }
     
 }
-
